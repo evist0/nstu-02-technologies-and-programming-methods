@@ -4,6 +4,7 @@ import com.evist0.engine.Canvas;
 import com.evist0.engine.GameEntity;
 import com.evist0.engine.InputManager;
 import com.evist0.engine.components.*;
+import com.evist0.engine.components.ScoreComponent;
 import com.evist0.engine.networking.*;
 import com.evist0.engine.networking.components.*;
 
@@ -42,17 +43,28 @@ public class Application extends JFrame {
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
         try {
+            GameEntity score = new GameEntity(this);
+            score.addComponent(new ScoreComponent());
+            score.addComponent(new NetworkComponent(0));
+            score.addComponent(new RemoteScoreComponent());
+            score.addComponent(new RemotePauseComponent());
+            score.addComponent(new PauseComponent(VK_SPACE));
+            TransformComponent scoreTransform = score.getComponent(TransformComponent.class);
+            scoreTransform.setX(1280 * 0.5f);
+            scoreTransform.setY(720);
+            entities.add(score);
+
             GameEntity player = new GameEntity(this);
             player.addComponent(new RectangleComponent(10, 100, Color.WHITE));
-            player.addComponent(new MovementComponent(VK_W, VK_S, 500));
-            player.addComponent(new NetworkComponent(0));
+            player.addComponent(new MovementComponent(VK_W, VK_S, 500, score.getComponent(PauseComponent.class)));
+            player.addComponent(new NetworkComponent(1));
             TransformComponent playerTransform = player.getComponent(TransformComponent.class);
             playerTransform.setX(50);
             entities.add(player);
 
             GameEntity enemy = new GameEntity(this);
             enemy.addComponent(new RectangleComponent(10, 100, Color.WHITE));
-            enemy.addComponent(new NetworkComponent(1));
+            enemy.addComponent(new NetworkComponent(2));
             enemy.addComponent(new RemoteTransformComponent());
             TransformComponent enemyTransform = enemy.getComponent(TransformComponent.class);
             enemyTransform.setX(1280 - 10 - 50);
@@ -60,14 +72,14 @@ public class Application extends JFrame {
 
             GameEntity ball = new GameEntity(this);
             ball.addComponent(new CircleComponent(15, Color.WHITE));
-            ball.addComponent(new NetworkComponent(2));
+            ball.addComponent(new NetworkComponent(3));
             ball.addComponent(new RemoteTransformComponent());
             TransformComponent ballTransform = ball.getComponent(TransformComponent.class);
             ballTransform.setX(1280 * 0.5f);
             ballTransform.setY(720 * 0.5f);
             if (isHost) {
                 ball.addComponent(new BallComponent(1280 * 0.5f, 720 * 0.5f, 850.f,
-                        player.getComponent(RectangleComponent.class), enemy.getComponent(RectangleComponent.class)));
+                        player.getComponent(RectangleComponent.class), enemy.getComponent(RectangleComponent.class), score.getComponent(ScoreComponent.class), score.getComponent(PauseComponent.class)));
             }
             entities.add(ball);
         } catch (Exception e) {

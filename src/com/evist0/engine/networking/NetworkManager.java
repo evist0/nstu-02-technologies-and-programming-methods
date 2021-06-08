@@ -59,6 +59,8 @@ public class NetworkManager {
         while (argsPut < args.length) {
             if (args[argsPut].getClass().isAssignableFrom(Float.class)) {
                 buffer.putFloat((Float) args[argsPut++]);
+            } else if (args[argsPut].getClass().isAssignableFrom(Integer.class)) {
+                buffer.putInt((Integer) args[argsPut++]);
             } else {
                 throw new IllegalArgumentException();
             }
@@ -113,7 +115,7 @@ public class NetworkManager {
             Method m;
             try {
                 m = Arrays.stream(c.getDeclaredMethods()).filter(method -> method.getName().equals(methodName)).findFirst().orElseThrow(NoSuchMethodException::new);
-            } catch (NoSuchMethodException e){
+            } catch (NoSuchMethodException e) {
                 e.printStackTrace();
                 continue;
             }
@@ -131,6 +133,8 @@ public class NetworkManager {
             for (Class<?> pt : parameterTypes) {
                 if (pt.isAssignableFrom(float.class)) {
                     parameters.add(wrapper.getFloat());
+                } else if (pt.isAssignableFrom(int.class)) {
+                    parameters.add(wrapper.getInt());
                 } else {
                     break;
                 }

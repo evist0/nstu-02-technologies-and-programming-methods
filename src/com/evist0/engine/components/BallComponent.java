@@ -1,19 +1,28 @@
 package com.evist0.engine.components;
 
-import java.util.logging.Handler;
 
 public class BallComponent extends Component {
-    private float resetPositionX;
-    private float resetPositionY;
+    private final float resetPositionX;
+    private final float resetPositionY;
 
     private final float velocity;
     private float velocityX;
     private float velocityY;
 
-    private RectangleComponent leftRectangle;
-    private RectangleComponent rightRectangle;
+    private final RectangleComponent leftRectangle;
+    private final RectangleComponent rightRectangle;
 
-    public BallComponent(float resetPositionX, float resetPositionY, float velocity, RectangleComponent leftRectangle, RectangleComponent rightRectangle) {
+    private final ScoreComponent scoreComponent;
+
+    private final PauseComponent pauseComponent;
+
+    public BallComponent(float resetPositionX,
+                         float resetPositionY,
+                         float velocity,
+                         RectangleComponent leftRectangle,
+                         RectangleComponent rightRectangle,
+                         ScoreComponent scoreComponent,
+                         PauseComponent pauseComponent) {
         this.resetPositionX = resetPositionX;
         this.resetPositionY = resetPositionY;
         this.velocity = velocity;
@@ -21,6 +30,8 @@ public class BallComponent extends Component {
         this.velocityY = 0.f;
         this.leftRectangle = leftRectangle;
         this.rightRectangle = rightRectangle;
+        this.scoreComponent = scoreComponent;
+        this.pauseComponent = pauseComponent;
     }
 
     private void resetPosition() {
@@ -39,20 +50,49 @@ public class BallComponent extends Component {
 
     @Override
     protected void doUpdate(float deltaTime) {
+        if (pauseComponent.isPaused()) {
+            return;
+        }
+
         TransformComponent transform = getEntity().getComponent(TransformComponent.class);
         CircleComponent circle = getEntity().getComponent(CircleComponent.class);
 
         transform.setX(transform.getX() + velocityX * deltaTime);
         transform.setY(transform.getY() + velocityY * deltaTime);
 
-        getEntity().getApplication().getNetworkManager().rpc(2, RemoteTransformComponent.class.getName(), "setPositionRpc", 1280 - transform.getX(), transform.getY());
+        getEntity().getApplication().getNetworkManager().rpc(3, RemoteTransformComponent.class.getName(), "setPositionRpc", 1280 - transform.getX(), transform.getY());
 
         int x = (int) transform.getX();
         int y = (int) transform.getY();
         int radius = circle.getRadius();
 
-        if (!isRectangleCollision(circle) && (x < 0 || x > 1280)) {
+        boolean goal = false;
+
+        if (!isRectangleCollision(circle) && x < 0) {
+            int score = scoreComponent.getEnemyScore() + 1;
+
+            scoreComponent.setEnemyScore(score);
+            getEntity().getApplication().getNetworkManager().rpc(0, RemoteScoreComponent.class.getName(), "setPlayerScore", score);
             resetPosition();
+
+            goal = true;
+        }
+
+        if (!isRectangleCollision(circle) && x > 1280) {
+            int score = scoreComponent.getPlayerScore() + 1;
+
+            scoreComponent.setPlayerScore(score);
+            getEntity().getApplication().getNetworkManager().rpc(0, RemoteScoreComponent.class.getName(), "setEnemyScore", score);
+            resetPosition();
+
+            goal = true;
+        }
+
+        if (goal) {
+            getEntity().getApplication().getNetworkManager().rpc(0, RemotePauseComponent.class.getName(), "setEnemyReady", 0);
+            getEntity().getApplication().getNetworkManager().rpc(0, RemotePauseComponent.class.getName(), "setPlayerReady", 0);
+            pauseComponent.setEnemyReady(false);
+            pauseComponent.setPlayerReady(false);
         }
 
         if (y - radius < 0 || y + radius > 720) {

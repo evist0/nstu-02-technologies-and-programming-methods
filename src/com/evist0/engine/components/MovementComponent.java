@@ -7,14 +7,21 @@ public class MovementComponent extends Component {
     private final int downKeyCode;
     private final int speed;
 
-    public MovementComponent(int upKeyCode, int downKeyCode, int speed) {
+    private final PauseComponent pauseComponent;
+
+    public MovementComponent(int upKeyCode, int downKeyCode, int speed, PauseComponent pauseComponent) {
         this.upKeyCode = upKeyCode;
         this.downKeyCode = downKeyCode;
         this.speed = speed;
+        this.pauseComponent = pauseComponent;
     }
 
     @Override
     protected void doUpdate(float deltaTime) {
+        if (pauseComponent.isPaused()) {
+            return;
+        }
+
         TransformComponent transform = getEntity().getComponent(TransformComponent.class);
         InputManager input = getEntity().getApplication().getInputManager();
 
@@ -26,6 +33,6 @@ public class MovementComponent extends Component {
             transform.setY(transform.getY() + speed * deltaTime);
         }
 
-        getEntity().getApplication().getNetworkManager().rpc(1, RemoteTransformComponent.class.getName(), "setPositionRpc", Float.NaN, transform.getY());
+        getEntity().getApplication().getNetworkManager().rpc(2, RemoteTransformComponent.class.getName(), "setPositionRpc", Float.NaN, transform.getY());
     }
 }
